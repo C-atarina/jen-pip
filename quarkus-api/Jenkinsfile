@@ -1,0 +1,29 @@
+pipeline {
+    agent any
+
+    tools {
+        maven 'Maven3' 
+    }
+
+    stages {
+
+        stage('Compile & Package') {
+            steps {
+                bat 'cd quarkus-api && mvn clean package'
+            }
+        }
+
+        stage('Build Image') {
+            steps {
+                bat 'cd quarkus-api && docker build -f src/main/docker/Dockerfile.jvm -t quarkus/quarkus-api:%BUILD_NUMBER% . && docker tag quarkus/quarkus-api:%BUILD_NUMBER% localhost:5000/quarkus-api:%BUILD_NUMBER% && docker push localhost:5000/quarkus-api:%BUILD_NUMBER%'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Déploiement du pod Kubernetes'
+                bat 'cd quarkus-api && helm upgrade --install quarkus-api ./quarkus-api-chart --namespace default --set image.repository=localhost:5000/quarkus-api --set image.tag=%BUILD_NUMBER% --set-string deploymentAnnotations.buildTimestamp=%BUILD_ID% --set-string deploymentAnnotations.changeCause="Version %BUILD_NUMBER%"'
+            }
+        }
+    }
+}
