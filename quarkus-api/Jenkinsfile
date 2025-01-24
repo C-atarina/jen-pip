@@ -5,14 +5,12 @@ pipeline {
         maven 'Maven3' 
     }
 
-    stages {
+    environment {
+        GIT_TAG = ""
+        NEW_TAG = ""
+    }
 
-        stage('Show Git Info') {
-            steps {
-                bat 'git rev-parse HEAD'
-                bat 'git log -1'
-            }
-        }
+    stages {
 
         stage('Compile & Package') {
             steps {
@@ -22,14 +20,28 @@ pipeline {
 
         stage('Build Image') {
             steps {
-                bat 'cd quarkus-api && docker build -f src/main/docker/Dockerfile.jvm -t quarkus/quarkus-api:%BUILD_NUMBER% . && docker tag quarkus/quarkus-api:%BUILD_NUMBER% localhost:5000/quarkus-api:%BUILD_NUMBER% && docker push localhost:5000/quarkus-api:%BUILD_NUMBER%'
+                bat 'git fetch --tags'
+                script {
+                    GIT_TAG = bat(script: 'git describe --tags --abbrev=0', returnStdout: true).trim()
+
+                    def parts = GIT_TAG.replace("v", "").tokenize(".")
+                    def major = parts[0] as int
+                    def minor = parts[1] as int
+                    def patch = parts[2] as int
+
+                    patch += 1
+                    NEW_TAG = "v${major}.${minor}.${patch}"
+                }
+
+                bat 'git tag %NEW_TAG% && git push origin %NEW_TAG% && git push origin --delete %GIT_TAG%'
+                bat 'cd quarkus-api && docker build -f src/main/docker/Dockerfile.jvm -t quarkus/quarkus-api:%NEW_TAG% . && docker tag quarkus/quarkus-api:%NEW_TAG% localhost:5000/quarkus-api:%NEW_TAG% && docker push localhost:5000/quarkus-api:%NEW_TAG%'
             }
         }
 
         stage('Deploy') {
             steps {
                 echo 'Déploiement du pod Kubernetes'
-                bat 'cd quarkus-api && helm upgrade --install quarkus-api ./quarkus-api-chart --namespace default --set image.repository=localhost:5000/quarkus-api --set image.tag=%BUILD_NUMBER% --set-string deploymentAnnotations.buildTimestamp=%BUILD_ID% --set-string deploymentAnnotations.changeCause="Version %BUILD_NUMBER%"'
+                bat 'cd quarkus-api && helm upgrade --install quarkus-api ./quarkus-api-chart --namespace default --set image.repository=localhost:5000/quarkus-api --set image.tag=%NEW_TAG% --set-string deploymentAnnotations.buildTimestamp=%BUILD_ID% --set-string deploymentAnnotations.changeCause="Version %NEW_TAG%"'
             }
         }
     }
