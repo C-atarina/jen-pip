@@ -7,6 +7,13 @@ pipeline {
 
     stages {
 
+        stage('Show Git Info') {
+            steps {
+                bat 'git rev-parse HEAD'
+                bat 'git log -1'
+            }
+        }
+
         stage('Compile & Package') {
             steps {
                 bat 'cd quarkus-api && mvn clean package'
