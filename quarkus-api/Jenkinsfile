@@ -33,8 +33,9 @@ pipeline {
                     NEW_TAG = "v${major}.${minor}.${patch}"
                 }
 
-                bat 'git tag %NEW_TAG% && git push origin %NEW_TAG% && git push origin --delete %GIT_TAG%'
-                bat 'cd quarkus-api && docker build -f src/main/docker/Dockerfile.jvm -t quarkus/quarkus-api:%NEW_TAG% . && docker tag quarkus/quarkus-api:%NEW_TAG% localhost:5000/quarkus-api:%NEW_TAG% && docker push localhost:5000/quarkus-api:%NEW_TAG%'
+                bat "git tag ${NEW_TAG} && git push origin ${NEW_TAG} && git push origin --delete ${GIT_TAG}"
+
+                bat "cd quarkus-api && docker build -f src/main/docker/Dockerfile.jvm -t quarkus/quarkus-api:${NEW_TAG} . && docker tag quarkus/quarkus-api:${NEW_TAG} localhost:5000/quarkus-api:${NEW_TAG} && docker push localhost:5000/quarkus-api:${NEW_TAG}"
             }
         }
 
