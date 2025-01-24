@@ -26,4 +26,13 @@ pipeline {
             }
         }
     }
+
+    post {
+        success {
+            step([$class: 'InfluxDbPublisher', selectedTarget: 'Jen-pip'])
+        }
+        failure {
+            step([$class: 'InfluxDbPublisher', selectedTarget: 'Jen-pip'])
+        }
+    }
 }
