@@ -12,6 +12,10 @@ data:
         static_configs:
           - targets: 
             - 'quarkus-api-service:8080'
+      - job_name: 'jenkins'
+        static_configs:
+          - targets: 
+            - 'jenkins-local:8080'
 
 ---
 apiVersion: apps/v1
